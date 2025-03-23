@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Task Tracker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    .task {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .task:last-child {
+      border-bottom: none;
+    }
+    .task-icon {
+      cursor: pointer;
+      font-size: 1.5em;
+      margin-right: 10px;
+    }
+    .task-label {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Daily Tasks</h1>
+    <div id="task-list">
+      <!-- Tasks will be loaded here -->
+    </div>
+  </div>
+
+  <script>
+    // Your deployed Google Apps Script Web App URL
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+
+    // Update the icon display based on task status
+    function updateIconDisplay(icon, done) {
+      if (done === true || done === "true") {
+        icon.textContent = "✔️";
+        icon.style.color = "green";
+        icon.dataset.done = "true";
+      } else {
+        icon.textContent = "❌";
+        icon.style.color = "red";
+        icon.dataset.done = "false";
+      }
+    }
+
+    // Toggle task status by sending an update to the backend and updating the icon
+    function toggleTask(index, icon) {
+      const currentState = (icon.dataset.done === "true");
+      const newState = !currentState;
+      const formData = new FormData();
+      formData.append('index', index);
+      formData.append('done', newState);
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(result => {
+          if (result.status === 'success') {
+            updateIconDisplay(icon, newState);
+          }
+        })
+        .catch(err => console.error('Error updating task:', err));
+    }
+
+    // Load tasks from the backend and render them with icons
+    function loadTasks() {
+      fetch(API_URL)
+        .then(response => response.json())
+        .then(tasks => {
+          const taskList = document.getElementById('task-list');
+          taskList.innerHTML = '';
+          tasks.forEach((task, index) => {
+            const div = document.createElement('div');
+            div.className = 'task';
+
+            // Create icon element for status
+            const icon = document.createElement('span');
+            icon.className = 'task-icon';
+            updateIconDisplay(icon, task.done);
+            icon.addEventListener('click', () => {
+              toggleTask(index, icon);
+            });
+
+            // Create label for task text
+            const label = document.createElement('span');
+            label.className = 'task-label';
+            label.textContent = task.task;
+
+            div.appendChild(icon);
+            div.appendChild(label);
+            taskList.appendChild(div);
+          });
+        })
+        .catch(err => console.error('Error loading tasks:', err));
+    }
+
+    // Initial load of tasks
+    loadTasks();
+  </script>
+</body>
+</html>
