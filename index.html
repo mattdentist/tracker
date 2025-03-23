@@ -62,6 +62,12 @@
       cursor: pointer;
       border-radius: 4px;
     }
+    /* Default grey style */
+    .grey-button {
+      background-color: #aaa;
+      color: #fff;
+    }
+    /* Colored styles */
     .green-check {
       background-color: #4CAF50;
       color: #fff;
@@ -120,7 +126,7 @@
     <a href="food.html">Food Log</a>
     <a href="recipes.html">Recipes</a>
   </nav>
-
+  
   <h1>Daily Tasks</h1>
   <!-- Display today's date -->
   <div class="date-display" id="date-display"></div>
@@ -190,8 +196,8 @@
                 <span class="streak" id="streak-${index}"></span>
               </div>
               <div>
-                <button class="task-button green-check" onclick="toggleTask(${index}, true)">✔️</button>
-                <button class="task-button red-x" onclick="toggleTask(${index}, false)">❌</button>
+                <button class="task-button grey-button" onclick="toggleTask(this, ${index}, true)">✔️</button>
+                <button class="task-button grey-button" onclick="toggleTask(this, ${index}, false)">❌</button>
                 <button onclick="showHistory(${index})">History</button>
               </div>
             `;
@@ -202,8 +208,8 @@
         .catch(err => console.error('Error loading tasks:', err));
     }
 
-    // Toggle task status
-    function toggleTask(index, done) {
+    // Toggle a task's status and update button appearance.
+    function toggleTask(btn, index, done) {
       const formData = new FormData();
       formData.append('action', 'update');
       formData.append('index', index);
@@ -211,14 +217,25 @@
       fetch(API_URL, { method: 'POST', body: formData })
         .then(response => response.json())
         .then(data => {
-          if (data.status === 'success') {
-            loadStreaks(); // Refresh streaks after update
+          if (data.status === "success") {
+            // Disable both buttons for this task.
+            const taskDiv = btn.parentNode.parentNode;
+            const buttons = taskDiv.querySelectorAll('button');
+            buttons.forEach(button => {
+              button.disabled = true;
+            });
+            // Update the clicked button's style.
+            if (done) {
+              btn.className = "task-button green-check";
+            } else {
+              btn.className = "task-button red-x";
+            }
           }
         })
         .catch(err => console.error('Error updating task:', err));
     }
 
-    // Load current streaks for all tasks
+    // Load current streaks for all tasks.
     function loadStreaks() {
       const formData = new FormData();
       formData.append('action', 'streaks');
@@ -239,7 +256,7 @@
         .catch(err => console.error('Error loading streaks:', err));
     }
 
-    // Show last 30 days of history for a task in a modal
+    // Show last 30 days of history for a task in a modal.
     function showHistory(index) {
       const formData = new FormData();
       formData.append('action', 'history');
@@ -260,25 +277,24 @@
         .catch(err => console.error('Error loading history:', err));
     }
 
-    // Close the history modal
+    // Close the history modal.
     document.getElementById('close-modal').onclick = function() {
       document.getElementById('history-modal').style.display = 'none';
     };
 
-    // Load today's note from the backend (noteGet action)
+    // Load today's note from the backend (noteGet action).
     function loadDailyNote() {
       const formData = new FormData();
       formData.append('action', 'noteGet');
       fetch(API_URL, { method: 'POST', body: formData })
         .then(response => response.json())
         .then(data => {
-          // Set to empty string if undefined.
           document.getElementById('daily-note').value = data.note || '';
         })
         .catch(err => console.error('Error loading note:', err));
     }
 
-    // Save today's note to the backend (noteSave action)
+    // Save today's note to the backend (noteSave action), and show confirmation.
     function saveDailyNote() {
       const note = document.getElementById('daily-note').value;
       const formData = new FormData();
@@ -302,7 +318,7 @@
         });
     }
 
-    // Initialize the page
+    // Initialize the page.
     setDateDisplay();
     loadTasks();
     loadDailyNote();
