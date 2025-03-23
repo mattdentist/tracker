@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Food Log</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f9;
+      padding: 20px;
+      margin: 0;
+    }
+    nav {
+      background: #333;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 10px;
+      font-size: 1.1em;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px;
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #food-status {
+      margin-top: 15px;
+      font-size: 1em;
+      color: green;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Menu -->
+  <nav>
+    <a href="index.html">Daily Tasks</a>
+    <a href="workouts.html">Workouts</a>
+    <a href="food.html">Food Log</a>
+    <a href="recipes.html">Recipes</a>
+  </nav>
+  
+  <div class="container">
+    <h1>Food Log</h1>
+    <label for="log-date">Date:</label>
+    <input type="date" id="log-date" />
+    
+    <label for="meal-name">Meal Name:</label>
+    <input type="text" id="meal-name" placeholder="Enter meal name (e.g., Breakfast)" />
+    
+    <label for="foods">Foods:</label>
+    <textarea id="foods" rows="3" placeholder="List foods consumed (e.g., chicken, rice, broccoli)"></textarea>
+    
+    <label for="calories">Total Calories:</label>
+    <input type="number" id="calories" placeholder="Enter total calories" />
+    
+    <label for="food-notes">Notes:</label>
+    <textarea id="food-notes" rows="2" placeholder="Any additional notes"></textarea>
+    
+    <button onclick="submitFoodLog()">Submit Meal</button>
+    
+    <div id="food-status"></div>
+  </div>
+  
+  <script>
+    // Replace with your deployed Apps Script Web App URL
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+    
+    // Set default date to today in the date input
+    function setDefaultDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = ("0" + (today.getMonth() + 1)).slice(-2);
+      const dd = ("0" + today.getDate()).slice(-2);
+      document.getElementById('log-date').value = `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Submit the food log entry to the backend
+    function submitFoodLog() {
+      const date = document.getElementById('log-date').value;
+      const mealName = document.getElementById('meal-name').value;
+      const foods = document.getElementById('foods').value;
+      const calories = document.getElementById('calories').value;
+      const notes = document.getElementById('food-notes').value;
+      
+      if (!date || !mealName) {
+        alert("Please enter at least the date and meal name.");
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('action', 'foodLogSave');
+      formData.append('date', date);
+      formData.append('mealName', mealName);
+      formData.append('foods', foods);
+      formData.append('totalCalories', calories);
+      formData.append('notes', notes);
+      
+      document.getElementById('food-status').textContent = "Submitting meal...";
+      
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            document.getElementById('food-status').textContent = "Meal logged successfully!";
+            // Clear fields (except the date)
+            document.getElementById('meal-name').value = "";
+            document.getElementById('foods').value = "";
+            document.getElementById('calories').value = "";
+            document.getElementById('food-notes').value = "";
+          } else {
+            document.getElementById('food-status').textContent = "Error logging meal.";
+          }
+        })
+        .catch(err => {
+          console.error("Error logging meal:", err);
+          document.getElementById('food-status').textContent = "Error logging meal.";
+        });
+    }
+    
+    setDefaultDate();
+  </script>
+</body>
+</html>
