@@ -90,11 +90,16 @@
       width: 100%;
       box-sizing: border-box;
     }
+    #note-status {
+      margin-top: 5px;
+      font-size: 0.9em;
+      color: green;
+    }
   </style>
 </head>
 <body>
   <h1>Daily Tasks</h1>
-  <!-- Today's Date -->
+  <!-- Display today's date -->
   <div class="date-display" id="date-display"></div>
   
   <!-- Tasks List -->
@@ -115,6 +120,7 @@
     <textarea id="daily-note" rows="4" placeholder="Enter your note for today..."></textarea>
     <br />
     <button onclick="saveDailyNote()">Save Note</button>
+    <div id="note-status"></div>
   </div>
 
   <script>
@@ -138,6 +144,7 @@
       return `${monthNames[date.getMonth()]} ${day}${ordinal(day)}, ${date.getFullYear()} - ${weekdayNames[date.getDay()]}`;
     }
 
+    // Display today's date
     function setDateDisplay() {
       const today = new Date();
       document.getElementById('date-display').textContent = formatDate(today);
@@ -172,7 +179,7 @@
         .catch(err => console.error('Error loading tasks:', err));
     }
 
-    // Toggle a task's status
+    // Toggle task status
     function toggleTask(index, done) {
       const formData = new FormData();
       formData.append('action', 'update');
@@ -242,7 +249,8 @@
       fetch(API_URL, { method: 'POST', body: formData })
         .then(response => response.json())
         .then(data => {
-          document.getElementById('daily-note').value = data.note;
+          // If data.note is undefined, default to an empty string.
+          document.getElementById('daily-note').value = data.note || '';
         })
         .catch(err => console.error('Error loading note:', err));
     }
@@ -257,10 +265,18 @@
         .then(response => response.json())
         .then(data => {
           if (data.status === 'success') {
-            alert('Note saved successfully!');
+            document.getElementById('note-status').textContent = 'Note saved successfully!';
+            setTimeout(() => {
+              document.getElementById('note-status').textContent = '';
+            }, 3000);
+          } else {
+            document.getElementById('note-status').textContent = 'Error saving note.';
           }
         })
-        .catch(err => console.error('Error saving note:', err));
+        .catch(err => {
+          console.error('Error saving note:', err);
+          document.getElementById('note-status').textContent = 'Error saving note.';
+        });
     }
 
     // Initialize the page
