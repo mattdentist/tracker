@@ -89,11 +89,12 @@
 
   <script>
     // Replace with your deployed Apps Script Web App URL
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+    const API_URL = 'YOUR_DEPLOYED_APPS_SCRIPT_URL';
+
     let allWorkouts = [];
     let filteredExercises = [];
 
-    // Load workout templates from the backend
+    // 1. Load workout templates from the backend
     function loadWorkouts() {
       const formData = new FormData();
       formData.append('action', 'workoutsGet');
@@ -106,7 +107,7 @@
         .catch(err => console.error('Error loading workouts:', err));
     }
 
-    // Populate unique workout types into the dropdown
+    // 2. Populate unique workout types into the dropdown
     function populateWorkoutTypes() {
       const workoutTypeSelect = document.getElementById('workout-type');
       const types = [...new Set(allWorkouts.map(item => item.workoutType))];
@@ -118,14 +119,14 @@
       });
     }
 
-    // Filter exercises based on selected workout type
+    // 3. Filter exercises based on selected workout type
     function filterExercises() {
       const selectedType = document.getElementById('workout-type').value;
       filteredExercises = allWorkouts.filter(item => item.workoutType === selectedType);
       renderExercises();
     }
 
-    // Render exercises for the selected workout type
+    // 4. Render exercises with separate columns for default sets and reps
     function renderExercises() {
       const container = document.getElementById('exercises-container');
       container.innerHTML = '';
@@ -138,15 +139,20 @@
         div.className = 'exercise';
         div.innerHTML = `
           <h3>${exercise.exercise}</h3>
-          <p>Default Sets/Reps: ${exercise.defaultSetsReps}</p>
-          <p>Rest: ${exercise.rest}</p>
-          <p>Form Cues: ${exercise.formCues}</p>
+          <p><strong>Default Sets:</strong> ${exercise.defaultSets}</p>
+          <p><strong>Default Reps:</strong> ${exercise.defaultReps}</p>
+          <p><strong>Rest:</strong> ${exercise.rest}</p>
+          <p><strong>Form Cues:</strong> ${exercise.formCues}</p>
+
           <label>Actual Sets:</label>
           <input type="number" id="sets-${index}" placeholder="Enter sets" />
+
           <label>Actual Reps:</label>
           <input type="number" id="reps-${index}" placeholder="Enter reps" />
+
           <label>Weight:</label>
           <input type="number" id="weight-${index}" placeholder="Enter weight (if applicable)" />
+
           <label>Notes:</label>
           <textarea id="notes-${index}" placeholder="Enter any notes for this exercise"></textarea>
         `;
@@ -154,7 +160,7 @@
       });
     }
 
-    // Submit the workout log
+    // 5. Submit the workout log
     function submitWorkout() {
       const workoutType = document.getElementById('workout-type').value;
       if (!workoutType) {
