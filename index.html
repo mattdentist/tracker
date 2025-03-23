@@ -45,18 +45,6 @@
     .task-label {
       flex: 1;
     }
-    .button {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin-top: 20px;
-      background: #4CAF50;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 1em;
-    }
     .streaks {
       margin-top: 20px;
     }
@@ -76,7 +64,6 @@
     <div id="task-list">
       <!-- Tasks will be loaded here -->
     </div>
-    <button class="button" id="record-btn">Record Today's Progress</button>
     <div class="streaks" id="streaks">
       <h2>Streaks</h2>
       <div id="streak-list"></div>
@@ -141,6 +128,8 @@
         .then(result => {
           if (result.status === 'success') {
             updateIconDisplay(icon, newState);
+            // Refresh streaks after update
+            loadStreaks();
           }
         })
         .catch(err => console.error('Error updating task:', err));
@@ -178,21 +167,6 @@
         .catch(err => console.error('Error loading tasks:', err));
     }
 
-    // Record today's progress in the backend
-    function recordProgress() {
-      const formData = new FormData();
-      formData.append('action', 'record');
-      fetch(API_URL, { method: 'POST', body: formData })
-        .then(response => response.json())
-        .then(result => {
-          if(result.status === 'success'){
-            alert("Today's progress recorded!");
-            loadStreaks();
-          }
-        })
-        .catch(err => console.error('Error recording progress:', err));
-    }
-
     // Load streaks from the backend and display them
     function loadStreaks() {
       const formData = new FormData();
@@ -211,9 +185,6 @@
         })
         .catch(err => console.error('Error loading streaks:', err));
     }
-
-    // Event listener for recording progress
-    document.getElementById('record-btn').addEventListener('click', recordProgress);
 
     // Initial load
     setDateDisplay();
