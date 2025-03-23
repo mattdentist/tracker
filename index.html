@@ -11,6 +11,21 @@
       padding: 20px;
       margin: 0;
     }
+    nav {
+      background: #333;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 10px;
+      font-size: 1.1em;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
     h1 {
       text-align: center;
       margin-top: 0;
@@ -98,6 +113,14 @@
   </style>
 </head>
 <body>
+  <!-- Navigation Menu -->
+  <nav>
+    <a href="index.html">Daily Tasks</a>
+    <a href="workouts.html">Workouts</a>
+    <a href="food.html">Food Log</a>
+    <a href="recipes.html">Recipes</a>
+  </nav>
+
   <h1>Daily Tasks</h1>
   <!-- Display today's date -->
   <div class="date-display" id="date-display"></div>
@@ -249,7 +272,7 @@
       fetch(API_URL, { method: 'POST', body: formData })
         .then(response => response.json())
         .then(data => {
-          // If data.note is undefined, default to an empty string.
+          // Set to empty string if undefined.
           document.getElementById('daily-note').value = data.note || '';
         })
         .catch(err => console.error('Error loading note:', err));
