@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workout Log</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f9;
+      padding: 20px;
+    }
+    nav {
+      background: #333;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 10px;
+      font-size: 1.1em;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input[type="number"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px;
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .exercise {
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Menu -->
+  <nav>
+    <a href="index.html">Daily Tasks</a>
+    <a href="workouts.html">Workouts</a>
+    <a href="food.html">Food Log</a>
+    <a href="recipes.html">Recipes</a>
+  </nav>
+  
+  <div class="container">
+    <h1>Workout Log</h1>
+    <label for="workout-type">Select Workout Type:</label>
+    <select id="workout-type" onchange="filterExercises()">
+      <option value="">--Select Workout--</option>
+    </select>
+
+    <div id="exercises-container"></div>
+
+    <button onclick="submitWorkout()">Submit Workout</button>
+    <div id="workout-status"></div>
+  </div>
+
+  <script>
+    // Replace with your deployed Apps Script Web App URL
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+    let allWorkouts = [];
+    let filteredExercises = [];
+
+    // Load workout templates from the backend
+    function loadWorkouts() {
+      const formData = new FormData();
+      formData.append('action', 'workoutsGet');
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          allWorkouts = data.workouts;
+          populateWorkoutTypes();
+        })
+        .catch(err => console.error('Error loading workouts:', err));
+    }
+
+    // Populate unique workout types into the dropdown
+    function populateWorkoutTypes() {
+      const workoutTypeSelect = document.getElementById('workout-type');
+      const types = [...new Set(allWorkouts.map(item => item.workoutType))];
+      types.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        workoutTypeSelect.appendChild(option);
+      });
+    }
+
+    // Filter exercises based on selected workout type
+    function filterExercises() {
+      const selectedType = document.getElementById('workout-type').value;
+      filteredExercises = allWorkouts.filter(item => item.workoutType === selectedType);
+      renderExercises();
+    }
+
+    // Render exercises for the selected workout type
+    function renderExercises() {
+      const container = document.getElementById('exercises-container');
+      container.innerHTML = '';
+      if (filteredExercises.length === 0) {
+        container.innerHTML = '<p>No exercises found for this workout.</p>';
+        return;
+      }
+      filteredExercises.forEach((exercise, index) => {
+        const div = document.createElement('div');
+        div.className = 'exercise';
+        div.innerHTML = `
+          <h3>${exercise.exercise}</h3>
+          <p>Default Sets/Reps: ${exercise.defaultSetsReps}</p>
+          <p>Rest: ${exercise.rest}</p>
+          <p>Form Cues: ${exercise.formCues}</p>
+          <label>Actual Sets:</label>
+          <input type="number" id="sets-${index}" placeholder="Enter sets" />
+          <label>Actual Reps:</label>
+          <input type="number" id="reps-${index}" placeholder="Enter reps" />
+          <label>Weight:</label>
+          <input type="number" id="weight-${index}" placeholder="Enter weight (if applicable)" />
+          <label>Notes:</label>
+          <textarea id="notes-${index}" placeholder="Enter any notes for this exercise"></textarea>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Submit the workout log
+    function submitWorkout() {
+      const workoutType = document.getElementById('workout-type').value;
+      if (!workoutType) {
+        alert('Please select a workout type.');
+        return;
+      }
+      const statusDiv = document.getElementById('workout-status');
+      statusDiv.textContent = 'Submitting workout...';
+      
+      // Submit each exercise's log entry
+      const promises = filteredExercises.map((exercise, index) => {
+        const sets = document.getElementById(`sets-${index}`).value;
+        const reps = document.getElementById(`reps-${index}`).value;
+        const weight = document.getElementById(`weight-${index}`).value;
+        const notes = document.getElementById(`notes-${index}`).value;
+        const formData = new FormData();
+        formData.append('action', 'workoutLogSave');
+        formData.append('workoutType', workoutType);
+        formData.append('exercise', exercise.exercise);
+        formData.append('sets', sets);
+        formData.append('reps', reps);
+        formData.append('weight', weight);
+        formData.append('notes', notes);
+        return fetch(API_URL, { method: 'POST', body: formData })
+          .then(response => response.json());
+      });
+      
+      Promise.all(promises)
+        .then(results => {
+          let allSuccess = results.every(res => res.status === 'success');
+          if (allSuccess) {
+            statusDiv.textContent = 'Workout logged successfully!';
+          } else {
+            statusDiv.textContent = 'Error logging workout. Please try again.';
+          }
+        })
+        .catch(err => {
+          console.error('Error submitting workout:', err);
+          statusDiv.textContent = 'Error logging workout. Please try again.';
+        });
+    }
+
+    // Initialize page by loading workout templates
+    loadWorkouts();
+  </script>
+</body>
+</html>
