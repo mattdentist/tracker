@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Daily Tasks</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Tasks & Notes</title>
   <style>
     body {
       font-family: sans-serif;
@@ -30,7 +30,10 @@
       justify-content: space-between;
       align-items: center;
     }
-    .task div { display: flex; align-items: center; }
+    .task div {
+      display: flex;
+      align-items: center;
+    }
     .streak {
       font-size: 0.9em;
       color: #333;
@@ -52,13 +55,15 @@
       background-color: #F44336;
       color: #fff;
     }
-    /* Modal styles */
+    /* Modal styles for task history */
     .modal {
       display: none;
       position: fixed;
       z-index: 100;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0,0,0,0.5);
     }
     .modal-content {
@@ -69,17 +74,33 @@
       max-width: 400px;
       border-radius: 4px;
     }
-    .close { float: right; cursor: pointer; }
+    .close { 
+      float: right; 
+      cursor: pointer; 
+    }
+    /* Notes section */
+    #notes-section {
+      margin-top: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    #daily-note {
+      width: 100%;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
   <h1>Daily Tasks</h1>
-  <!-- Display today's date here -->
+  <!-- Today's Date -->
   <div class="date-display" id="date-display"></div>
-
+  
+  <!-- Tasks List -->
   <div id="tasks-container"></div>
 
-  <!-- Modal for task history -->
+  <!-- Modal for Task History -->
   <div id="history-modal" class="modal">
     <div class="modal-content">
       <span id="close-modal" class="close">&times;</span>
@@ -88,38 +109,41 @@
     </div>
   </div>
 
-  <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec'; // Replace with your actual URL
+  <!-- Daily Note Section -->
+  <div id="notes-section">
+    <h2>Daily Note</h2>
+    <textarea id="daily-note" rows="4" placeholder="Enter your note for today..."></textarea>
+    <br />
+    <button onclick="saveDailyNote()">Save Note</button>
+  </div>
 
-    // Format date with an ordinal suffix and weekday
+  <script>
+    // Replace with your deployed Apps Script Web App URL
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+
+    // Format today's date (e.g., "March 23rd, 2025 - Sunday")
     function formatDate(date) {
       const day = date.getDate();
       const ordinal = (n) => {
         if (n > 3 && n < 21) return 'th';
         switch (n % 10) {
-          case 1: return "st";
-          case 2: return "nd";
-          case 3: return "rd";
-          default: return "th";
+          case 1: return 'st';
+          case 2: return 'nd';
+          case 3: return 'rd';
+          default: return 'th';
         }
       };
-      const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-      ];
-      const weekdayNames = [
-        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-      ];
+      const monthNames = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
+      const weekdayNames = [ 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' ];
       return `${monthNames[date.getMonth()]} ${day}${ordinal(day)}, ${date.getFullYear()} - ${weekdayNames[date.getDay()]}`;
     }
 
-    // Display today's date
     function setDateDisplay() {
       const today = new Date();
       document.getElementById('date-display').textContent = formatDate(today);
     }
 
-    // Load tasks
+    // Load tasks from the backend (doGet endpoint)
     function loadTasks() {
       fetch(API_URL)
         .then(response => response.json())
@@ -129,7 +153,6 @@
           data.tasks.forEach((task, index) => {
             const taskDiv = document.createElement('div');
             taskDiv.className = 'task';
-            // Adjust if your JSON returns "task" or "name"
             const taskName = task.task || task.name;
             taskDiv.innerHTML = `
               <div>
@@ -149,7 +172,7 @@
         .catch(err => console.error('Error loading tasks:', err));
     }
 
-    // Toggle task status
+    // Toggle a task's status
     function toggleTask(index, done) {
       const formData = new FormData();
       formData.append('action', 'update');
@@ -158,14 +181,14 @@
       fetch(API_URL, { method: 'POST', body: formData })
         .then(response => response.json())
         .then(data => {
-          if (data.status === "success") {
-            loadStreaks(); // Refresh streaks
+          if (data.status === 'success') {
+            loadStreaks(); // Refresh streaks after update
           }
         })
         .catch(err => console.error('Error updating task:', err));
     }
 
-    // Load current streaks
+    // Load current streaks for all tasks
     function loadStreaks() {
       const formData = new FormData();
       formData.append('action', 'streaks');
@@ -186,7 +209,7 @@
         .catch(err => console.error('Error loading streaks:', err));
     }
 
-    // Show last 30 days of history
+    // Show last 30 days of history for a task in a modal
     function showHistory(index) {
       const formData = new FormData();
       formData.append('action', 'history');
@@ -207,14 +230,43 @@
         .catch(err => console.error('Error loading history:', err));
     }
 
-    // Close modal
+    // Close the history modal
     document.getElementById('close-modal').onclick = function() {
       document.getElementById('history-modal').style.display = 'none';
     };
 
-    // Initial load
-    setDateDisplay();  // Show today's date
-    loadTasks();       // Load tasks & streaks
+    // Load today's note from the backend (noteGet action)
+    function loadDailyNote() {
+      const formData = new FormData();
+      formData.append('action', 'noteGet');
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('daily-note').value = data.note;
+        })
+        .catch(err => console.error('Error loading note:', err));
+    }
+
+    // Save today's note to the backend (noteSave action)
+    function saveDailyNote() {
+      const note = document.getElementById('daily-note').value;
+      const formData = new FormData();
+      formData.append('action', 'noteSave');
+      formData.append('note', note);
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            alert('Note saved successfully!');
+          }
+        })
+        .catch(err => console.error('Error saving note:', err));
+    }
+
+    // Initialize the page
+    setDateDisplay();
+    loadTasks();
+    loadDailyNote();
   </script>
 </body>
 </html>
