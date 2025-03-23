@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recipes</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f9;
+      padding: 20px;
+      margin: 0;
+    }
+    nav {
+      background: #333;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 10px;
+      font-size: 1.1em;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    .recipe {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 0;
+      margin-bottom: 10px;
+    }
+    .recipe h2 {
+      margin: 0;
+    }
+    .recipe p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Menu -->
+  <nav>
+    <a href="index.html">Daily Tasks</a>
+    <a href="workouts.html">Workouts</a>
+    <a href="food.html">Food Log</a>
+    <a href="recipes.html">Recipes</a>
+  </nav>
+  
+  <div class="container">
+    <h1>Recipes</h1>
+    <div id="recipes-container">
+      <p>Loading recipes...</p>
+    </div>
+  </div>
+  
+  <script>
+    // Replace with your deployed Apps Script Web App URL
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+    
+    function loadRecipes() {
+      const formData = new FormData();
+      formData.append('action', 'recipesGet');
+      
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          const container = document.getElementById('recipes-container');
+          container.innerHTML = '';
+          if (data.error) {
+            container.innerHTML = '<p>Error loading recipes: ' + data.error + '</p>';
+            return;
+          }
+          data.recipes.forEach(recipe => {
+            const div = document.createElement('div');
+            div.className = 'recipe';
+            div.innerHTML = `
+              <h2>${recipe.name}</h2>
+              <p><strong>Ingredients:</strong> ${recipe.ingredients}</p>
+              <p><strong>Instructions:</strong> ${recipe.instructions}</p>
+              <p><strong>Notes:</strong> ${recipe.notes}</p>
+            `;
+            container.appendChild(div);
+          });
+        })
+        .catch(err => {
+          console.error('Error fetching recipes:', err);
+          document.getElementById('recipes-container').innerHTML = '<p>Error loading recipes.</p>';
+        });
+    }
+    
+    loadRecipes();
+  </script>
+</body>
+</html>
