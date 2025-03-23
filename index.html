@@ -3,193 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Daily Task Tracker</title>
+  <title>Daily Tasks</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f4f4f9;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-    .container {
-      max-width: 400px;
-      margin: 0 auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .date-display {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 1.2em;
-    }
-    h1 {
-      text-align: center;
-    }
-    .task {
-      display: flex;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #eee;
-    }
-    .task:last-child {
-      border-bottom: none;
-    }
-    .task-icon {
-      cursor: pointer;
-      font-size: 1.5em;
-      margin-right: 10px;
-    }
-    .task-label {
-      flex: 1;
-    }
-    .streaks {
-      margin-top: 20px;
-    }
-    .streaks h2 {
-      text-align: center;
-    }
-    .streak-item {
-      padding: 5px 0;
-      border-bottom: 1px solid #eee;
-    }
+    body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+    h1 { text-align: center; }
+    .task { margin: 10px 0; padding: 10px; background: #fff; border: 1px solid #ccc; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .task div { display: flex; align-items: center; }
+    .streak { font-size: 0.9em; color: #333; margin-left: 10px; }
+    button { margin-left: 5px; }
+    /* Modal styles */
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .modal-content { background: #fff; margin: 10% auto; padding: 20px; width: 80%; max-width: 400px; border-radius: 4px; }
+    .close { float: right; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="date-display" id="date-display"></div>
-    <h1>Daily Tasks</h1>
-    <div id="task-list">
-      <!-- Tasks will be loaded here -->
-    </div>
-    <div class="streaks" id="streaks">
-      <h2>Streaks</h2>
-      <div id="streak-list"></div>
+  <h1>Daily Tasks</h1>
+  <div id="tasks-container"></div>
+
+  <!-- Modal for task history -->
+  <div id="history-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-modal" class="close">&times;</span>
+      <h2 id="modal-task-name">Task History</h2>
+      <div id="modal-history"></div>
     </div>
   </div>
 
   <script>
-    // Your deployed Google Apps Script Web App URL
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec'; // Replace with your Apps Script URL
 
-    // Format date with ordinal suffix and weekday (e.g., "March 23rd, 2025 - Sunday")
-    function formatDate(date) {
-      const day = date.getDate();
-      const ordinal = (n) => {
-        if (n > 3 && n < 21) return 'th';
-        switch (n % 10) {
-          case 1: return "st";
-          case 2: return "nd";
-          case 3: return "rd";
-          default: return "th";
-        }
-      }
-      const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-      ];
-      const weekdayNames = [
-        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-      ];
-      return `${monthNames[date.getMonth()]} ${day}${ordinal(day)}, ${date.getFullYear()} - ${weekdayNames[date.getDay()]}`;
+    // Load tasks from the Tasks tab (via doGet endpoint)
+    function loadTasks() {
+      fetch(API_URL)
+        .then(response => response.json())
+        .then(data => {
+          const container = document.getElementById('tasks-container');
+          container.innerHTML = '';
+          data.tasks.forEach((task, index) => {
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'task';
+            taskDiv.innerHTML = `
+              <div>
+                <strong>${task.task}</strong>
+                <span class="streak" id="streak-${index}"></span>
+              </div>
+              <div>
+                <button onclick="toggleTask(${index}, true)">Yes</button>
+                <button onclick="toggleTask(${index}, false)">No</button>
+                <button onclick="showHistory(${index})">History</button>
+              </div>
+            `;
+            container.appendChild(taskDiv);
+          });
+          loadStreaks();
+        })
+        .catch(err => console.error('Error loading tasks:', err));
     }
 
-    // Set the current date display
-    function setDateDisplay() {
-      const today = new Date();
-      document.getElementById('date-display').textContent = formatDate(today);
-    }
-
-    // Update the icon display based on task status
-    function updateIconDisplay(icon, done) {
-      if (done === true || done === "true") {
-        icon.textContent = "✔️";
-        icon.style.color = "green";
-        icon.dataset.done = "true";
-      } else {
-        icon.textContent = "❌";
-        icon.style.color = "red";
-        icon.dataset.done = "false";
-      }
-    }
-
-    // Toggle task status by sending an update to the backend and updating the icon
-    function toggleTask(index, icon) {
-      const currentState = (icon.dataset.done === "true");
-      const newState = !currentState;
+    // Toggle task status
+    function toggleTask(index, done) {
       const formData = new FormData();
       formData.append('action', 'update');
       formData.append('index', index);
-      formData.append('done', newState);
+      formData.append('done', done);
       fetch(API_URL, { method: 'POST', body: formData })
         .then(response => response.json())
-        .then(result => {
-          if (result.status === 'success') {
-            updateIconDisplay(icon, newState);
-            // Refresh streaks after update
-            loadStreaks();
+        .then(data => {
+          if (data.status === "success") {
+            loadStreaks(); // Refresh streaks after update
           }
         })
         .catch(err => console.error('Error updating task:', err));
     }
 
-    // Load tasks from the backend and render them with icons
-    function loadTasks() {
-      fetch(API_URL)
-        .then(response => response.json())
-        .then(tasks => {
-          const taskList = document.getElementById('task-list');
-          taskList.innerHTML = '';
-          tasks.forEach((task, index) => {
-            const div = document.createElement('div');
-            div.className = 'task';
-
-            // Create icon element for status
-            const icon = document.createElement('span');
-            icon.className = 'task-icon';
-            updateIconDisplay(icon, task.done);
-            icon.addEventListener('click', () => {
-              toggleTask(index, icon);
-            });
-
-            // Create label for task text
-            const label = document.createElement('span');
-            label.className = 'task-label';
-            label.textContent = task.task;
-
-            div.appendChild(icon);
-            div.appendChild(label);
-            taskList.appendChild(div);
-          });
-        })
-        .catch(err => console.error('Error loading tasks:', err));
-    }
-
-    // Load streaks from the backend and display them
+    // Load current streaks for all tasks
     function loadStreaks() {
       const formData = new FormData();
       formData.append('action', 'streaks');
       fetch(API_URL, { method: 'POST', body: formData })
         .then(response => response.json())
         .then(streaks => {
-          const streakList = document.getElementById('streak-list');
-          streakList.innerHTML = '';
-          for (const task in streaks) {
-            const div = document.createElement('div');
-            div.className = 'streak-item';
-            div.textContent = `${task}: ${streaks[task]} day streak`;
-            streakList.appendChild(div);
-          }
+          const container = document.getElementById('tasks-container');
+          Array.from(container.children).forEach(taskDiv => {
+            const taskName = taskDiv.querySelector('strong').textContent;
+            const streakSpan = taskDiv.querySelector('.streak');
+            if (streaks[taskName] !== undefined) {
+              streakSpan.textContent = streaks[taskName] + ' day streak';
+            } else {
+              streakSpan.textContent = '';
+            }
+          });
         })
         .catch(err => console.error('Error loading streaks:', err));
     }
 
+    // Show task history (last 30 days) in a modal
+    function showHistory(index) {
+      const formData = new FormData();
+      formData.append('action', 'history');
+      formData.append('index', index);
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('modal-task-name').textContent = data.task;
+          const modalHistory = document.getElementById('modal-history');
+          modalHistory.innerHTML = '';
+          data.history.forEach(item => {
+            const p = document.createElement('p');
+            p.textContent = `${item.date}: ${item.status}`;
+            modalHistory.appendChild(p);
+          });
+          document.getElementById('history-modal').style.display = 'block';
+        })
+        .catch(err => console.error('Error loading history:', err));
+    }
+
+    // Close modal functionality
+    document.getElementById('close-modal').onclick = function() {
+      document.getElementById('history-modal').style.display = 'none';
+    };
+
     // Initial load
-    setDateDisplay();
     loadTasks();
-    loadStreaks();
   </script>
 </body>
 </html>
