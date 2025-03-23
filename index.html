@@ -20,6 +20,11 @@
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
+    .date-display {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.2em;
+    }
     h1 {
       text-align: center;
     }
@@ -40,19 +45,75 @@
     .task-label {
       flex: 1;
     }
+    .button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 20px;
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .streaks {
+      margin-top: 20px;
+    }
+    .streaks h2 {
+      text-align: center;
+    }
+    .streak-item {
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="date-display" id="date-display"></div>
     <h1>Daily Tasks</h1>
     <div id="task-list">
       <!-- Tasks will be loaded here -->
+    </div>
+    <button class="button" id="record-btn">Record Today's Progress</button>
+    <div class="streaks" id="streaks">
+      <h2>Streaks</h2>
+      <div id="streak-list"></div>
     </div>
   </div>
 
   <script>
     // Your deployed Google Apps Script Web App URL
     const API_URL = 'https://script.google.com/macros/s/AKfycbxGpUNWsuWnp2mop-L8gH_HkKzVqbtc14ANCCN0NMzo4AOMbxk9SCWpAWoJ0XBLo_1pDg/exec';
+
+    // Format date with ordinal suffix and weekday (e.g., "March 23rd, 2025 - Sunday")
+    function formatDate(date) {
+      const day = date.getDate();
+      const ordinal = (n) => {
+        if (n > 3 && n < 21) return 'th';
+        switch (n % 10) {
+          case 1: return "st";
+          case 2: return "nd";
+          case 3: return "rd";
+          default: return "th";
+        }
+      }
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const weekdayNames = [
+        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+      ];
+      return `${monthNames[date.getMonth()]} ${day}${ordinal(day)}, ${date.getFullYear()} - ${weekdayNames[date.getDay()]}`;
+    }
+
+    // Set the current date display
+    function setDateDisplay() {
+      const today = new Date();
+      document.getElementById('date-display').textContent = formatDate(today);
+    }
 
     // Update the icon display based on task status
     function updateIconDisplay(icon, done) {
@@ -72,6 +133,7 @@
       const currentState = (icon.dataset.done === "true");
       const newState = !currentState;
       const formData = new FormData();
+      formData.append('action', 'update');
       formData.append('index', index);
       formData.append('done', newState);
       fetch(API_URL, { method: 'POST', body: formData })
@@ -116,8 +178,47 @@
         .catch(err => console.error('Error loading tasks:', err));
     }
 
-    // Initial load of tasks
+    // Record today's progress in the backend
+    function recordProgress() {
+      const formData = new FormData();
+      formData.append('action', 'record');
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(result => {
+          if(result.status === 'success'){
+            alert("Today's progress recorded!");
+            loadStreaks();
+          }
+        })
+        .catch(err => console.error('Error recording progress:', err));
+    }
+
+    // Load streaks from the backend and display them
+    function loadStreaks() {
+      const formData = new FormData();
+      formData.append('action', 'streaks');
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(streaks => {
+          const streakList = document.getElementById('streak-list');
+          streakList.innerHTML = '';
+          for (const task in streaks) {
+            const div = document.createElement('div');
+            div.className = 'streak-item';
+            div.textContent = `${task}: ${streaks[task]} day streak`;
+            streakList.appendChild(div);
+          }
+        })
+        .catch(err => console.error('Error loading streaks:', err));
+    }
+
+    // Event listener for recording progress
+    document.getElementById('record-btn').addEventListener('click', recordProgress);
+
+    // Initial load
+    setDateDisplay();
     loadTasks();
+    loadStreaks();
   </script>
 </body>
 </html>
